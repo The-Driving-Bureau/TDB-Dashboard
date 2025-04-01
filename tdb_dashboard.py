@@ -7,11 +7,11 @@ df = pd.read_csv("crash_data.csv")
 
 # Add filter for county
 counties = df["Crash County Description"].dropna().unique()
-selected_county = st.selectbox("Select a County", sorted(counties))
-filtered_df = df[df["Crash County Description"] == selected_county]
+selected_counties = st.multiselect("Select Counties", sorted(counties), default=list(counties))
+filtered_df = df[df["Crash County Description"].isin(selected_counties)]
 
 # Show bar chart of crashes by impact type
-st.subheader(f"Crashes by Impact Type in {selected_county}")
+st.subheader(f"Crashes by Impact Type in {', '.join(selected_counties)}")
 impact_counts = filtered_df["CollisionImpact Description"].value_counts()
 
 fig, ax = plt.subplots()
