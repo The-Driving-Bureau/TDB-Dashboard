@@ -1,0 +1,7 @@
+STATE,COUNTY,CRASH_DATE,CRASH_TYPE,VEHICLE_TYPE,LATITUDE,LONGITUDE
+Maryland,Prince George's,2024-03-10 14:00:00,Rear-End,Box Truck,38.826,-76.909
+Maryland,Baltimore,2024-03-11 08:30:00,Side-Swipe,Truck Tractor,39.29,-76.61
+Virginia,Fairfax,2024-03-09 17:45:00,Rollover,Single Unit Truck,38.846,-77.306
+Virginia,Richmond,2024-03-08 06:15:00,Rear-End,Box Truck,37.54,-77.436
+DC,Washington,2024-03-07 12:00:00,Side-Swipe,Tractor Trailer,38.895,-77.036
+DC,Washington,2024-03-07 22:00:00,Rear-End,Truck Tractor,38.9,-77.042
