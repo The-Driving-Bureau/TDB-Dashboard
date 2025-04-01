@@ -2,6 +2,37 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #f9f9f9;
+    }
+    .css-18e3th9 {
+        background-color: #fff;
+        border: 1px solid #eaeaea;
+        border-radius: 10px;
+        padding: 20px;
+    }
+    .st-bx {
+        background-color: #f0f3f7;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+    }
+    h1, h2, h3, .stText, .stMarkdown {
+        color: #003057;
+    }
+    .stButton>button {
+        background-color: #0072ce;
+        color: white;
+        border-radius: 5px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Load crash data from CSV
 df = pd.read_csv("crash_data.csv")
 
