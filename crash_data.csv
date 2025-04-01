@@ -1,7 +1,6 @@
-STATE,HOUR,CRASH_TYPE
-Maryland,14,Rear-end
-Maryland,15,Side-swipe
-Maryland,10,Rollover
-Texas,16,Rear-end
-Texas,9,Rear-end
-Texas,10,Rollover
+CollisionImpact Description,Crash County Description,Large Vehicle Involved,Work Zone Crash,Motorcycle Crash,Unrestrained Occupants
+Rear-End,Baltimore,Yes,No,No,Yes
+Side-Swipe,Prince George's,Yes,No,No,No
+Rollover,Anne Arundel,Yes,Yes,No,Yes
+Rear-End,Montgomery,Yes,No,No,No
+Side-Swipe,Baltimore,Yes,Yes,No,Yes
