@@ -13,7 +13,18 @@ with st.sidebar:
     st.title("Filter Panel")
     counties = df["Crash County Description"].dropna().unique()
     selected_counties = st.multiselect("Select Counties", sorted(counties), default=list(counties))
-filtered_df = df[df["Crash County Description"].isin(selected_counties)]
+
+    severities = df["Crash Severity Description"].dropna().unique()
+    selected_severities = st.multiselect("Select Severity Types", sorted(severities), default=list(severities))
+
+    hours = sorted(df["Crashhour"].dropna().unique())
+    selected_hours = st.slider("Select Hour Range", min_value=min(hours), max_value=max(hours), value=(min(hours), max(hours)))
+
+filtered_df = df[
+    (df["Crash County Description"].isin(selected_counties)) &
+    (df["Crash Severity Description"].isin(selected_severities)) &
+    (df["Crashhour"].between(selected_hours[0], selected_hours[1]))
+]
 
 # Show bar chart of crashes by impact type
 st.subheader(f"Crashes by Impact Type in {', '.join(selected_counties)}\nSeverity: {', '.join(selected_severities)}\nHours: {selected_hours[0]}–{selected_hours[1]}")
