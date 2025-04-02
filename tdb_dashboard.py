@@ -16,7 +16,7 @@ with st.sidebar:
 filtered_df = df[df["Crash County Description"].isin(selected_counties)]
 
 # Show bar chart of crashes by impact type
-st.subheader(f"Crashes by Impact Type in {', '.join(selected_counties)}")
+st.subheader(f"Crashes by Impact Type in {', '.join(selected_counties)}\nSeverity: {', '.join(selected_severities)}\nHours: {selected_hours[0]}–{selected_hours[1]}")
 impact_counts = filtered_df["CollisionImpact Description"].value_counts()
 
 fig, ax = plt.subplots()
@@ -25,6 +25,15 @@ ax.set_xlabel("Impact Type")
 ax.set_ylabel("Number of Crashes")
 ax.tick_params(axis='x', rotation=45)
 st.pyplot(fig)
+
+# New chart for crashes by severity
+severity_counts = filtered_df["Crash Severity Description"].value_counts()
+st.subheader("Crashes by Severity")
+fig2, ax2 = plt.subplots()
+ax2.bar(severity_counts.index, severity_counts.values, color="green")
+ax2.set_xlabel("Severity")
+ax2.set_ylabel("Number of Crashes")
+st.pyplot(fig2)
 
 # Show breakdown by crash involvement
 col1, col2 = st.columns(2)
