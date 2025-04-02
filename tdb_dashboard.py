@@ -2,12 +2,17 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
+st.image("logo.png", width=200)
+st.markdown("## Welcome to The Driving Bureau Crash Risk Dashboard")
+
 # Load crash data from CSV
 df = pd.read_csv("crash_data.csv")
 
 # Add filter for county
-counties = df["Crash County Description"].dropna().unique()
-selected_counties = st.multiselect("Select Counties", sorted(counties), default=list(counties))
+with st.sidebar:
+    st.title("Filter Panel")
+    counties = df["Crash County Description"].dropna().unique()
+    selected_counties = st.multiselect("Select Counties", sorted(counties), default=list(counties))
 filtered_df = df[df["Crash County Description"].isin(selected_counties)]
 
 # Show bar chart of crashes by impact type
@@ -22,11 +27,18 @@ ax.tick_params(axis='x', rotation=45)
 st.pyplot(fig)
 
 # Show breakdown by crash involvement
-st.subheader("Work Zone Crash Involvement")
-st.write(filtered_df["Work Zone Crash"].value_counts())
+col1, col2 = st.columns(2)
 
-st.subheader("Motorcycle Crash Involvement")
-st.write(filtered_df["Motorcycle Crash"].value_counts())
+with col1:
+    st.subheader("Work Zone Crash Involvement")
+    st.write(filtered_df["Work Zone Crash"].value_counts())
 
-st.subheader("Unrestrained Occupants")
-st.write(filtered_df["Unrestrained Occupants"].value_counts())
+    st.subheader("Unrestrained Occupants")
+    st.write(filtered_df["Unrestrained Occupants"].value_counts())
+
+with col2:
+    st.subheader("Motorcycle Crash Involvement")
+    st.write(filtered_df["Motorcycle Crash"].value_counts())
+
+with st.expander("View Raw Crash Data"):
+    st.dataframe(filtered_df)
