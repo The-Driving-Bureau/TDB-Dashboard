@@ -26,6 +26,8 @@ with st.sidebar:
 
 st.subheader("🚚 Route Risk Preview (Mapbox)")
 
+travel_hours = st.slider("Expected Travel Time Range (24-hour format)", min_value=0, max_value=23, value=(8, 10))
+
 # Mapbox token
 MAPBOX_TOKEN = "pk.eyJ1IjoibXJsZWU4NTAiLCJhIjoiY205MGgxdm5qMDcyODJscHE3dDNucWg1dSJ9._xEbS_Z_do2s8oaoeYdvww"
 
@@ -57,29 +59,38 @@ def get_route_geometry(start_coords, end_coords):
     else:
         return []
 
-def calculate_route_risk(route_coords, crashes_df, distance_threshold=0.01):
+def calculate_route_risk(route_coords, crashes_df, travel_hours, distance_threshold=0.01):
     route_line = LineString(route_coords)
     total_score = 0
     crash_points = []
+    overlapping_crashes = 0
+
     for _, row in crashes_df.iterrows():
         crash_point = Point(row["Longitude"], row["Latitude"])
         if route_line.distance(crash_point) < distance_threshold:
-            score = 0
-            if row["Crash Severity Description"] == "Fatal Crashes":
-                score += 3
-            elif row["Crash Severity Description"] == "Injury Crashes":
-                score += 2
-            elif row["Crash Severity Description"] == "Property Damage Crashes":
-                score += 1
-            if row.get("Work Zone Crash") == "Yes":
-                score += 1.5
-            if row.get("Unrestrained Occupants") == "Yes":
-                score += 2
-            if row["Crashhour"] in range(20, 24) or row["Crashhour"] in range(0, 6):
-                score += 2
-            total_score += score
-            crash_points.append((row["Latitude"], row["Longitude"], score))
-    return total_score, crash_points
+            if travel_hours[0] <= row["Crashhour"] <= travel_hours[1]:
+                overlapping_crashes += 1
+                base_score = 1
+                if row["Crashhour"] in range(20, 24) or row["Crashhour"] in range(0, 6):
+                    base_score += 1  # add 1 more point if crash occurred at night
+                total_score += base_score
+
+    # Adjust risk by overlapping density (normalized weight factor, increased to 3x)
+    density_weight = overlapping_crashes * 0.6  # was 0.2, now x3
+    total_score = total_score + density_weight
+    return total_score, overlapping_crashes
+
+def classify_risk_level(score, max_score=30):
+    scaled_score = min(int((score / max_score) * 100), max_score)
+    if scaled_score < 20:
+        level = "🟢 Low"
+    elif scaled_score < 50:
+        level = "🟡 Moderate"
+    elif scaled_score < 80:
+        level = "🟠 Elevated"
+    else:
+        level = "🔴 High"
+    return scaled_score, level
 
 if start and end:
     start_coords = geocode_address(start)
@@ -90,25 +101,28 @@ if start and end:
         st.map(route_df)
         
         if "Latitude" in filtered_df.columns and "Longitude" in filtered_df.columns:
-            route_score, route_crashes = calculate_route_risk(route_coords, filtered_df)
-            st.markdown(f"### 🔥 Route Risk Score: {route_score}")
+            route_score, overlapping_crashes = calculate_route_risk(route_coords, df, travel_hours)
+            scaled_score, risk_level = classify_risk_level(route_score)
+            st.markdown(f"### 🔥 Route Risk Score: {scaled_score} ({risk_level})")
+            st.caption(f"Overlapping crashes during {travel_hours[0]}:00–{travel_hours[1]}:00: {overlapping_crashes}")
             
             with st.expander("📊 How is the Route Risk Score Calculated?"):
-                st.markdown("""
-                The **Route Risk Score** helps you understand the safety risk of a selected route using recent crash data. Here's how we calculate it:
-                
-                **Factors and Their Risk Points:**
-                - 🚨 **Fatal Crash**: +3 points  
-                - 🚑 **Injury Crash**: +2 points  
-                - 🚗 **Property Damage Crash**: +1 point  
-                - 🚧 **Work Zone Crash**: +1.5 points  
-                - 🧍‍♂️ **Unrestrained Occupants**: +2 points  
-                - 🌙 **Night-Time Crash (8 PM–6 AM)**: +2 points  
+                st.markdown(f"""
+                The **Route Risk Score** estimates safety risk based on crashes that occurred during your selected travel time window.
 
-                Each crash along your route contributes to the total score based on these criteria.  
-                The **higher the score**, the greater the risk associated with your route.
+                ### Risk Factor Used:
+                - ⏱️ **Crashes during {travel_hours[0]}:00–{travel_hours[1]}:00**: +1 point each  
 
-                _Use this score to help plan safer driving strategies and training opportunities._
+                Each crash that occurred within your expected travel range adds to your route score.  
+                The higher the score, the more crash activity occurred along your route at that time.
+
+                ### Risk Levels
+                - 🟢 0–19: Low — minimal crash history
+                - 🟡 20–49: Moderate — some crash activity
+                - 🟠 50–79: Elevated — frequent crash presence
+                - 🔴 80–100: High — avoid if possible
+
+                _Use this score to evaluate route safety at your intended time of travel._
                 """)
     else:
         st.warning("Unable to fetch route. Please check address spelling.")
@@ -120,16 +134,6 @@ if "Latitude" in filtered_df.columns and "Longitude" in filtered_df.columns:
     # Example risk score calculation (simplified for demo)
     def calculate_risk(row):
         score = 0
-        if row["Crash Severity Description"] == "Fatal Crashes":
-            score += 3
-        elif row["Crash Severity Description"] == "Injury Crashes":
-            score += 2
-        elif row["Crash Severity Description"] == "Property Damage Crashes":
-            score += 1
-        if row.get("Work Zone Crash") == "Yes":
-            score += 1.5
-        if row.get("Unrestrained Occupants") == "Yes":
-            score += 2
         if row["Crashhour"] in range(20, 24) or row["Crashhour"] in range(0, 6):
             score += 2
         return score
