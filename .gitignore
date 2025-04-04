@@ -1,0 +1,58 @@
+# 🔒 SECURITY & CONFIG FILES
+.env
+*.env
+.env.*
+
+# 💼 PYTHON VIRTUAL ENVIRONMENTS
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# 📦 PYTHON FILES
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# 🔧 STREAMLIT FILES
+.streamlit/config.toml
+
+# 📄 JUPYTER NOTEBOOK CHECKPOINTS
+.ipynb_checkpoints/
+
+# 🐘 DATABASE FILES
+*.sqlite3
+*.db
+
+# 📊 LOG FILES
+*.log
+
+# 🧪 TESTING FILES
+coverage/
+htmlcov/
+.tox/
+.nox/
+pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# 📁 BUILD ARTIFACTS
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# 📦 PACKAGE MANAGERS
+pip-wheel-metadata/
+Pipfile.lock
+poetry.lock
+
+# 💻 OS-SPECIFIC
+.DS_Store
+Thumbs.db
