@@ -4,6 +4,9 @@ import plotly.express as px
 import shapely
 import polyline
 import requests
+from gomotive.auth import get_gomotive_access_token
+from gomotive.api import get_user_info
+
 
 st.set_page_config(page_title="Driver Profile", layout="wide", initial_sidebar_state="collapsed")
 with st.container():
@@ -19,6 +22,37 @@ with st.container():
         if st.button("Settings"):
             st.warning("Settings not implemented yet.")
     st.markdown("""</div>""", unsafe_allow_html=True)
+
+st.subheader("👤 GoMotive User Info")
+auth_code = st.text_input("Enter your authorization code:", type="password")
+if auth_code:
+    try:
+        token_data = get_gomotive_access_token(auth_code)
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        st.success("✅ Successfully retrieved GoMotive API token.")
+        st.code(f"Access Token: {access_token[:10]}... (truncated)", language="text")
+
+        try:
+            user_info = get_user_info(access_token)
+            with st.expander("🔍 API Call Log", expanded=False):
+                st.code("Requesting user info from: https://api.gomotive.com/v1/users/me", language="text")
+                st.code(f"Authorization: Bearer {access_token[:10]}... (truncated)", language="text")
+                st.code(f"Response: {user_info}", language="json")
+
+            st.markdown(f"### {user_info.get('name', 'N/A')}")
+            st.markdown(f"**Email:** {user_info.get('email', 'N/A')}")
+            st.markdown(f"**Phone:** {user_info.get('phone_number', 'N/A')}")
+            st.markdown(f"**Role:** {user_info.get('role', 'Driver')}")
+
+        except Exception as e:
+            st.error(f"Failed to retrieve user info: {str(e)}")
+
+    except Exception as e:
+        import traceback
+        st.error(f"❌ Failed to retrieve GoMotive API token or user info: {e}")
+        with st.expander("🪵 Debug Log", expanded=False):
+            st.code(traceback.format_exc(), language="python")
 
 st.markdown("## 📂 Navigation")
 nav_selection = st.selectbox(
