@@ -2,6 +2,7 @@ import requests
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlencode
+import streamlit as st
 
 load_dotenv()
 
@@ -20,50 +21,49 @@ def get_gomotive_access_token(auth_code: str):
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
     response = requests.post(url, data=payload, headers=headers)
+    print("Token request payload:", payload)
+    print("Token request headers:", headers)
+
     if response.status_code == 200:
-        return response.json()
+        token_data = response.json()
+        print("Token scopes granted:", token_data.get("scope"))
+        return token_data
     else:
         raise Exception(f"Failed to retrieve GoMotive API token: {response.status_code} - {response.text}")
 
-def get_current_user_info(token: str):
-    url = "https://api.gomotive.com/v1/users/me"
+def get_from_gomotive(endpoint: str, token: str):
+    """
+    General-purpose GET request handler for GoMotive API using Bearer token.
+    """
+    if not token:
+        raise ValueError("Missing access token.")
+
+    url = f"https://api.gomotive.com/v1/{endpoint}"
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json"
     }
 
-    print(f"Requesting user info from: {url}")
-    print(f"Using headers: {headers}")
+    print(f"GET {url} → Headers: {headers}")
 
     response = requests.get(url, headers=headers)
 
-    print(f"Response status code: {response.status_code}")
+    print(f"Response status: {response.status_code}")
     print(f"Response content: {response.text}")
 
     if response.status_code == 200:
         return response.json()
     else:
-        raise Exception(f"Failed to retrieve user info: {response.status_code} - {response.text}")
+        raise Exception(f"Failed GET {endpoint}: {response.status_code} - {response.text}")
+
+def get_current_user_info(token: str):
+    return get_from_gomotive("users", token)
 
 def get_user_info(token: str):
-    """
-    Fetches user information using GoMotive API (matches /v1/users structure).
-    """
-    url = "https://api.gomotive.com/v1/users"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json"
-    }
+    return get_from_gomotive("users", token)
 
-    print(f"Requesting user info from: {url}")
-    print(f"Using headers: {headers}")
+def get_driver_by_id(driver_id: int, token: str):
+    return get_from_gomotive(f"users/{driver_id}", token)
 
-    response = requests.get(url, headers=headers)
-
-    print(f"Response status code: {response.status_code}")
-    print(f"Response content: {response.text}")
-
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise Exception(f"Failed to retrieve user info: {response.status_code} - {response.text}")
+def get_all_drivers(token: str):
+    return get_from_gomotive("users", token)
