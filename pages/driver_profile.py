@@ -5,8 +5,8 @@ import shapely
 import polyline
 import requests
 from gomotive.auth import get_gomotive_access_token
-from gomotive.api import get_user_info
-
+from gomotive.api import get_user_info, get_driver_by_id
+from gomotive.session import save_token_to_session, get_token_from_session, is_token_expired
 
 st.set_page_config(page_title="Driver Profile", layout="wide", initial_sidebar_state="collapsed")
 with st.container():
@@ -24,35 +24,72 @@ with st.container():
     st.markdown("""</div>""", unsafe_allow_html=True)
 
 st.subheader("👤 GoMotive User Info")
-auth_code = st.text_input("Enter your authorization code:", type="password")
-if auth_code:
-    try:
-        token_data = get_gomotive_access_token(auth_code)
-        access_token = token_data.get("access_token")
-        refresh_token = token_data.get("refresh_token")
-        st.success("✅ Successfully retrieved GoMotive API token.")
-        st.code(f"Access Token: {access_token[:10]}... (truncated)", language="text")
+access_token = get_token_from_session()
 
+if not access_token or is_token_expired():
+    auth_code = st.text_input("Enter your authorization code:", type="password")
+    if auth_code:
         try:
-            user_info = get_user_info(access_token)
-            with st.expander("🔍 API Call Log", expanded=False):
-                st.code("Requesting user info from: https://api.gomotive.com/v1/users/me", language="text")
-                st.code(f"Authorization: Bearer {access_token[:10]}... (truncated)", language="text")
-                st.code(f"Response: {user_info}", language="json")
-
-            st.markdown(f"### {user_info.get('name', 'N/A')}")
-            st.markdown(f"**Email:** {user_info.get('email', 'N/A')}")
-            st.markdown(f"**Phone:** {user_info.get('phone_number', 'N/A')}")
-            st.markdown(f"**Role:** {user_info.get('role', 'Driver')}")
-
+            token_data = get_gomotive_access_token(auth_code)
+            save_token_to_session(token_data)
+            access_token = token_data.get("access_token")
+            st.success("✅ Successfully retrieved GoMotive API token.")
+            st.code(f"Access Token: {access_token[:10]}... (truncated)", language="text")
         except Exception as e:
-            st.error(f"Failed to retrieve user info: {str(e)}")
+            import traceback
+            st.error(f"❌ Failed to retrieve GoMotive API token: {e}")
+            with st.expander("🪵 Debug Log", expanded=False):
+                st.code(traceback.format_exc(), language="python")
+            st.stop()
 
-    except Exception as e:
+if not access_token:
+    st.warning("Please enter a valid authorization code to continue.")
+    st.stop()
+
+# Temporary static list of driver IDs to simulate multiple drivers (can be replaced with real dynamic call)
+demo_driver_ids = [
+    {"id": "2596759", "name": "Joshua Lee"},
+    {"id": "1234567", "name": "Test Driver 1"},
+    {"id": "7654321", "name": "Test Driver 2"},
+]
+
+driver_names = [f"{d['name']} (ID: {d['id']})" for d in demo_driver_ids]
+selected_driver = st.selectbox("Select a driver to view:", driver_names)
+
+selected_id = selected_driver.split("ID: ")[-1].replace(")", "").strip()
+
+try:
+    user_info = get_driver_by_id(selected_id, access_token)
+except Exception as e:
+    st.error(f"❌ Failed to retrieve GoMotive API token or user info: {e}")
+    with st.expander("🪵 Debug Log", expanded=True):
         import traceback
-        st.error(f"❌ Failed to retrieve GoMotive API token or user info: {e}")
-        with st.expander("🪵 Debug Log", expanded=False):
-            st.code(traceback.format_exc(), language="python")
+        st.code(traceback.format_exc(), language="python")
+    st.stop()
+
+driver_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+driver_email = user_info.get("email", "N/A")
+driver_phone = user_info.get("phone", "N/A")
+driver_timezone = user_info.get("time_zone", "N/A")
+distance_driven = user_info.get('distance_driven', '🚧 Data not available')
+deliveries_count = user_info.get('deliveries_count', '🚧 Data not available')
+experience_level = user_info.get('experience_level', '🚧 Data not available')
+
+with st.expander("🔍 API Call Log", expanded=False):
+    st.code("Requesting user info from: https://api.gomotive.com/v1/users/{driver_id}", language="text")
+    st.code(f"Authorization: Bearer {access_token[:10]}... (truncated)", language="text")
+    st.code(f"Response: {user_info}", language="json")
+
+st.markdown(f"### {driver_name or 'N/A'}")
+st.markdown("**Role:** Driver")  # Can update if API returns role
+st.markdown(f"**Miles Driven:** {distance_driven}")
+st.markdown(f"**Deliveries:** {deliveries_count}")
+st.markdown("**Rating:** ⭐⭐⭐⭐☆")  # Static or future dynamic
+st.markdown(f"**Experience:** {experience_level}")
+st.markdown("**Contact:**")
+st.markdown(f"[📧 Email](mailto:{driver_email})")
+st.markdown(f"📞 {driver_phone}")
+st.markdown(f"🕓 Time Zone: {driver_timezone}")
 
 st.markdown("## 📂 Navigation")
 nav_selection = st.selectbox(
@@ -72,14 +109,16 @@ col1, col2 = st.columns([1, 4])
 with col1:
     st.image("logo.png", width=120)
 with col2:
-    st.markdown("### Marcus Doe")
-    st.markdown("**Role:** Driver")
-    st.markdown("**Miles Driven:** 47k")
-    st.markdown("**Deliveries:** 349")
-    st.markdown("**Rating:** ⭐⭐⭐⭐☆")
-    st.markdown("**Experience:** 5 years")
+    st.markdown(f"### {driver_name or 'N/A'}")
+    st.markdown("**Role:** Driver")  # Can update if API returns role
+    st.markdown(f"**Miles Driven:** {distance_driven}")
+    st.markdown(f"**Deliveries:** {deliveries_count}")
+    st.markdown("**Rating:** ⭐⭐⭐⭐☆")  # Static or future dynamic
+    st.markdown(f"**Experience:** {experience_level}")
     st.markdown("**Contact:**")
-    st.markdown("[📧 Email](mailto:marcus.doe@example.com)")
+    st.markdown(f"[📧 Email](mailto:{driver_email})")
+    st.markdown(f"📞 {driver_phone}")
+    st.markdown(f"🕓 Time Zone: {driver_timezone}")
 
 col1, col2 = st.columns((2, 1))
 
