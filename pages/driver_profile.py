@@ -59,20 +59,23 @@ selected_id = selected_driver.split("ID: ")[-1].replace(")", "").strip()
 
 try:
     user_info = get_driver_by_id(selected_id, access_token)
-    driver_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-    driver_email = user_info.get("email", "N/A")
-    driver_phone = user_info.get("phone", "N/A")
-    driver_timezone = user_info.get("time_zone", "N/A")
+    print("DEBUG - User Info Response:", user_info)
+    user_data = user_info.get("user", user_info)
+    driver_name = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()
+    driver_email = user_data.get("email", "N/A")
+    driver_phone = user_data.get("phone", "N/A")
+    driver_timezone = user_data.get("time_zone", "N/A")
 
     # Extract nested company role if available
-    role = user_info.get('company_connection', {}).get('role', user_info.get('role', 'Driver'))
-    status = user_info.get('company_connection', {}).get('status', 'Unknown')
+    role = user_data.get("company_connection", {}).get("role", user_data.get("role", "Driver"))
+    status = user_data.get("company_connection", {}).get("status", "Unknown")
 
-    # Simulate fallback values for now
-    distance_driven = user_info.get('distance_driven', '🚧 Data not available')
-    deliveries_count = user_info.get('deliveries_count', '🚧 Data not available')
-    experience_level = user_info.get('experience_level', '🚧 Data not available')
-    rating = user_info.get('rating', '⭐⭐⭐⭐☆')
+    # Replace fallback values with actual API data
+    distance_driven = user_data.get('distance_driven') or "🚧 Data not available"
+    deliveries_count = user_data.get('deliveries', {}).get('count') or "🚧 Data not available"
+    experience_level = user_data.get('experience', {}).get('level') or "🚧 Data not available"
+    rating_value = user_data.get('performance', {}).get('rating', 4)
+    rating = "⭐" * int(rating_value) + "☆" * (5 - int(rating_value))
 except Exception as e:
     st.error(f"❌ Failed to retrieve GoMotive API token or user info: {e}")
     with st.expander("🪵 Debug Log", expanded=True):
@@ -84,84 +87,82 @@ with st.expander("🔍 API Call Log", expanded=False):
     st.code("Requesting user info from: https://api.gomotive.com/v1/users/{driver_id}", language="text")
     st.code(f"Authorization: Bearer {access_token[:10]}... (truncated)", language="text")
     st.code(f"Response: {user_info}", language="json")
-
-st.markdown(f"### {driver_name or 'N/A'}")
-st.markdown(f"**Role:** {role}")
-st.markdown(f"**Status:** {status}")
-st.markdown(f"**Miles Driven:** {distance_driven}")
-st.markdown(f"**Deliveries:** {deliveries_count}")
-st.markdown(f"**Rating:** {rating}")
-st.markdown(f"**Experience:** {experience_level}")
-st.markdown("**Contact:**")
-st.markdown(f"[📧 Email](mailto:{driver_email})")
-st.markdown(f"📞 {driver_phone}")
-st.markdown(f"🕓 Time Zone: {driver_timezone}")
-
-st.markdown("## 📂 Navigation")
-nav_selection = st.selectbox(
-    "Navigate to:",
-    options=["Driver Profile", "Overview", "Settings"],
-    index=0
-)
-
-if nav_selection != "Driver Profile":
-    st.warning(f"'{nav_selection}' page is under construction.")
-    st.stop()
-
 st.title("🚗 Driver Profile Dashboard")
 
 st.subheader("👤 Driver Information")
-col1, col2 = st.columns([1, 4])
-with col1:
-    st.image("logo.png", width=120)
-with col2:
-    st.markdown(f"### {driver_name or 'N/A'}")
-    st.markdown(f"**Role:** {role}")
-    st.markdown(f"**Status:** {status}")
-    st.markdown(f"**Miles Driven:** {distance_driven}")
-    st.markdown(f"**Deliveries:** {deliveries_count}")
-    st.markdown(f"**Rating:** {rating}")
-    st.markdown(f"**Experience:** {experience_level}")
-    st.markdown("**Contact:**")
-    st.markdown(f"[📧 Email](mailto:{driver_email})")
-    st.markdown(f"📞 {driver_phone}")
-    st.markdown(f"🕓 Time Zone: {driver_timezone}")
+with st.container():
+    left_col, right_col = st.columns([2, 1], gap="large")
+    with left_col:
+        driver_name = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()
+        st.markdown(f"### {driver_name or 'N/A'}")
+        st.image("https://via.placeholder.com/100", caption="Driver Photo", width=100)
+        st.markdown(f"**Role:** {role}")
+        st.markdown(f"**Status:** {status}")
 
-col1, col2 = st.columns((2, 1))
+        info_col1, info_col2, info_col3 = st.columns(3)
+        with info_col1:
+            st.metric("Miles Driven", distance_driven)
+            st.markdown(f"**Experience:** {experience_level}")
+        with info_col2:
+            st.metric("Deliveries", deliveries_count)
+            st.markdown(f"**Rating:** {rating}")
+        with info_col3:
+            st.markdown("**Contact:**")
+            st.markdown(f"[📧 Email](mailto:{driver_email})")
+            st.markdown(f"📞 {driver_phone}")
+            st.markdown(f"🕓 Time Zone: {driver_timezone}")
 
-with col1:
-    st.subheader("📊 Top Performer Comparison")
-    performer_data = pd.DataFrame({
-        "Member": ["Brian", "Nick", "Tim", "Tom"],
-        "Earnings": [1345, 950, 1140, 665],
-        "Cases": [124, 80, 92, 60],
-        "Rate": [0.87, 0.91, 0.88, 0.85]
-    })
-    st.dataframe(performer_data)
+    with right_col:
+        st.subheader("🛡️ Performance Chart")
+        radar_data = pd.DataFrame(dict(
+            r=[85, 92, 88, 90, 87],
+            theta=["Speed", "Compliance", "Success Rate", "Customer Service", "Reliability"]
+        ))
+        fig_radar = px.line_polar(radar_data, r='r', theta='theta', line_close=True)
+        fig_radar.update_traces(fill='toself')
+        st.plotly_chart(fig_radar, use_container_width=True)
 
-    st.subheader("📈 Synergy Report")
-    synergy_data = pd.DataFrame({
-        "Date": pd.date_range(start="2024-01-01", periods=12, freq="M"),
-        "Score": [88, 91, 85, 87, 90, 92, 93, 91, 89, 94, 95, 96]
-    })
-    fig = px.line(synergy_data, x="Date", y="Score", markers=True, title="Monthly Synergy Score")
-    st.plotly_chart(fig, use_container_width=True)
+st.subheader("📊 Driver Summary Overview")
 
-with col2:
-    st.subheader("🛡️ Performance Chart")
-    radar_data = pd.DataFrame(dict(
-        r=[85, 92, 88, 90, 87],
-        theta=["Speed", "Compliance", "Success Rate", "Customer Service", "Reliability"]
-    ))
-    fig_radar = px.line_polar(radar_data, r='r', theta='theta', line_close=True)
-    fig_radar.update_traces(fill='toself')
-    st.plotly_chart(fig_radar, use_container_width=True)
+# Placeholder metrics (to be replaced with API data later)
+weekly_miles = 450
+weekly_delta = 15
+hos_compliance = 93
+hos_delta = 2
+avg_speed = 56
 
-    st.subheader("📋 Task Feed")
-    st.markdown("""
-    - ✅ Present 2024 Year-End Safety Stats (Company)
-    - 🕐 Hold Interview for Safety Officer Role (Hiring)
-    - 📌 Incident Resolution Follow-Up (Pending)
-    - 🧾 Prepare Agreement with Insurance Partner (In Progress)
-    - ❌ Update GPS Route Tracker (Overdue)
-    """)
+# Placeholder chart data
+miles_data = pd.DataFrame({
+    "Date": pd.date_range(start="2024-04-01", periods=7, freq="D"),
+    "Miles": [60, 75, 80, 55, 90, 40, 50]
+})
+fig_miles = px.bar(miles_data, x="Date", y="Miles", title="Miles Driven per Day")
+
+hos_data = pd.DataFrame({
+    "Date": pd.date_range(start="2024-04-01", periods=7, freq="D"),
+    "Compliance (%)": [92, 95, 88, 90, 94, 91, 93]
+})
+fig_hos = px.line(hos_data, x="Date", y="Compliance (%)", title="Daily HOS Compliance")
+
+tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Miles", "HOS", "Speed"])
+
+with tab1:
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Miles This Week", f"{weekly_miles} mi", delta=f"{weekly_delta} mi")
+    with col2:
+        st.metric("HOS Compliance", f"{hos_compliance}%", delta=f"{hos_delta}%")
+    with col3:
+        st.metric("Avg Speed", f"{avg_speed} mph")
+
+with tab2:
+    st.metric("Miles This Week", f"{weekly_miles} mi", delta=f"{weekly_delta} mi")
+    st.plotly_chart(fig_miles, use_container_width=True)
+
+with tab3:
+    st.metric("HOS Compliance", f"{hos_compliance}%", delta=f"{hos_delta}%")
+    st.plotly_chart(fig_hos, use_container_width=True)
+
+with tab4:
+    st.metric("Avg Speed", f"{avg_speed} mph")
+    st.markdown("Speed trends will be visualized here soon.")
