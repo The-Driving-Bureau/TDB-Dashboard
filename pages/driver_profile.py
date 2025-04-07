@@ -46,11 +46,10 @@ if not access_token:
     st.warning("Please enter a valid authorization code to continue.")
     st.stop()
 
-# Temporary static list of driver IDs to simulate multiple drivers (can be replaced with real dynamic call)
+driver_response = get_user_info(access_token)
 demo_driver_ids = [
-    {"id": "2596759", "name": "Joshua Lee"},
-    {"id": "1234567", "name": "Test Driver 1"},
-    {"id": "7654321", "name": "Test Driver 2"},
+    {"id": str(user["user"]["id"]), "name": f'{user["user"]["first_name"]} {user["user"]["last_name"]}'}
+    for user in driver_response.get("users", [])
 ]
 
 driver_names = [f"{d['name']} (ID: {d['id']})" for d in demo_driver_ids]
@@ -60,6 +59,20 @@ selected_id = selected_driver.split("ID: ")[-1].replace(")", "").strip()
 
 try:
     user_info = get_driver_by_id(selected_id, access_token)
+    driver_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
+    driver_email = user_info.get("email", "N/A")
+    driver_phone = user_info.get("phone", "N/A")
+    driver_timezone = user_info.get("time_zone", "N/A")
+
+    # Extract nested company role if available
+    role = user_info.get('company_connection', {}).get('role', user_info.get('role', 'Driver'))
+    status = user_info.get('company_connection', {}).get('status', 'Unknown')
+
+    # Simulate fallback values for now
+    distance_driven = user_info.get('distance_driven', '🚧 Data not available')
+    deliveries_count = user_info.get('deliveries_count', '🚧 Data not available')
+    experience_level = user_info.get('experience_level', '🚧 Data not available')
+    rating = user_info.get('rating', '⭐⭐⭐⭐☆')
 except Exception as e:
     st.error(f"❌ Failed to retrieve GoMotive API token or user info: {e}")
     with st.expander("🪵 Debug Log", expanded=True):
@@ -67,24 +80,17 @@ except Exception as e:
         st.code(traceback.format_exc(), language="python")
     st.stop()
 
-driver_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip()
-driver_email = user_info.get("email", "N/A")
-driver_phone = user_info.get("phone", "N/A")
-driver_timezone = user_info.get("time_zone", "N/A")
-distance_driven = user_info.get('distance_driven', '🚧 Data not available')
-deliveries_count = user_info.get('deliveries_count', '🚧 Data not available')
-experience_level = user_info.get('experience_level', '🚧 Data not available')
-
 with st.expander("🔍 API Call Log", expanded=False):
     st.code("Requesting user info from: https://api.gomotive.com/v1/users/{driver_id}", language="text")
     st.code(f"Authorization: Bearer {access_token[:10]}... (truncated)", language="text")
     st.code(f"Response: {user_info}", language="json")
 
 st.markdown(f"### {driver_name or 'N/A'}")
-st.markdown("**Role:** Driver")  # Can update if API returns role
+st.markdown(f"**Role:** {role}")
+st.markdown(f"**Status:** {status}")
 st.markdown(f"**Miles Driven:** {distance_driven}")
 st.markdown(f"**Deliveries:** {deliveries_count}")
-st.markdown("**Rating:** ⭐⭐⭐⭐☆")  # Static or future dynamic
+st.markdown(f"**Rating:** {rating}")
 st.markdown(f"**Experience:** {experience_level}")
 st.markdown("**Contact:**")
 st.markdown(f"[📧 Email](mailto:{driver_email})")
@@ -110,10 +116,11 @@ with col1:
     st.image("logo.png", width=120)
 with col2:
     st.markdown(f"### {driver_name or 'N/A'}")
-    st.markdown("**Role:** Driver")  # Can update if API returns role
+    st.markdown(f"**Role:** {role}")
+    st.markdown(f"**Status:** {status}")
     st.markdown(f"**Miles Driven:** {distance_driven}")
     st.markdown(f"**Deliveries:** {deliveries_count}")
-    st.markdown("**Rating:** ⭐⭐⭐⭐☆")  # Static or future dynamic
+    st.markdown(f"**Rating:** {rating}")
     st.markdown(f"**Experience:** {experience_level}")
     st.markdown("**Contact:**")
     st.markdown(f"[📧 Email](mailto:{driver_email})")
